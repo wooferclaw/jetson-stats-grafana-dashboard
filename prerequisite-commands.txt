@@ -5,3 +5,8 @@ pwd
 git clone https://github.com/wooferclaw/jetson-stats-grafana-dashboard.git
 cd jetson-stats-grafana-dashboard
 pwd
+
+chmod 777 install.sh
+
+
+journalctl -u jetson_stats_prometheus_collector.service
