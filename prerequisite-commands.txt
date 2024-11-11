@@ -1,0 +1,7 @@
+mkdir monitoring
+cd monitoring
+pwd
+
+git clone https://github.com/wooferclaw/jetson-stats-grafana-dashboard.git
+cd jetson-stats-grafana-dashboard
+pwd
