@@ -35,6 +35,9 @@ class CustomCollector(object):
         atexit.register(self.cleanup)
         self._jetson = jtop()
         self._jetson.start()
+        #for key, value in self._jetson.__dict__.items():
+        #    print(f"{key}: {value}")
+        #print(self._jetson.cpu)
 
     def cleanup(self):
         print("Closing jetson-stats connection...")
@@ -50,23 +53,24 @@ class CustomCollector(object):
             # Board info 
             #
             i = InfoMetricFamily('jetson_info_board', 'Board sys info', labels=['board_info'])
+            #print(self._jetson)
             i.add_metric(['info'], {
-                'machine': self._jetson.board['info']['machine'], 
-                'jetpack': self._jetson.board['info']['jetpack'], 
-                'l4t': self._jetson.board['info']['L4T']
+                'machine': self._jetson.board['platform']['Machine'], 
+                'jetpack': self._jetson.board['hardware']['Jetpack'], 
+                'l4t': self._jetson.board['hardware']['L4T']
                 })
             yield i
 
             i = InfoMetricFamily('jetson_info_hardware', 'Board hardware info', labels=['board_hw'])                    
             i.add_metric(['hardware'], {
-                'type': self._jetson.board['hardware']['TYPE'],
-                'codename': self._jetson.board['hardware']['CODENAME'],
-                'soc': self._jetson.board['hardware']['SOC'],
-                'chip_id': self._jetson.board['hardware']['CHIP_ID'],
-                'module': self._jetson.board['hardware']['MODULE'],
-                'board': self._jetson.board['hardware']['BOARD'],
-                'cuda_arch_bin': self._jetson.board['hardware']['CUDA_ARCH_BIN'],
-                'serial_number': self._jetson.board['hardware']['SERIAL_NUMBER']
+                'type': self._jetson.board['hardware']['Module'],
+                'codename': self._jetson.board['hardware']['699-level Part Number'],
+                'soc': self._jetson.board['hardware']['SoC'],
+                'chip_id': self._jetson.board['hardware']['P-Number'],
+                'module': self._jetson.board['hardware']['Module'],
+                'board': self._jetson.board['hardware']['Model'],
+                'cuda_arch_bin': self._jetson.board['hardware']['CUDA Arch BIN'],
+                'serial_number': self._jetson.board['hardware']['Serial Number']
                 })
             yield i
 
@@ -93,23 +97,25 @@ class CustomCollector(object):
             #
             # CPU usage 
             #
+            
             g = GaugeMetricFamily('jetson_usage_cpu', 'CPU % schedutil', labels=['cpu'])
-            g.add_metric(['cpu_1'], self._jetson.cpu['CPU1']['val'])
-            g.add_metric(['cpu_2'], self._jetson.cpu['CPU2']['val'])
-            g.add_metric(['cpu_3'], self._jetson.cpu['CPU3']['val'])
-            g.add_metric(['cpu_4'], self._jetson.cpu['CPU4']['val'])
-            g.add_metric(['cpu_5'], self._jetson.cpu['CPU5']['val'])
-            g.add_metric(['cpu_6'], self._jetson.cpu['CPU6']['val'])
-            g.add_metric(['cpu_7'], self._jetson.cpu['CPU7']['val'])
-            g.add_metric(['cpu_8'], self._jetson.cpu['CPU8']['val'])
+            g.add_metric(['cpu_1'], self._jetson.cpu['cpu'][0]['user'])
+            g.add_metric(['cpu_2'], self._jetson.cpu['cpu'][1]['user'])
+            g.add_metric(['cpu_3'], self._jetson.cpu['cpu'][2]['user'])
+            g.add_metric(['cpu_4'], self._jetson.cpu['cpu'][3]['user'])
+            g.add_metric(['cpu_5'], self._jetson.cpu['cpu'][4]['user'])
+            g.add_metric(['cpu_6'], self._jetson.cpu['cpu'][5]['user'])
+            #g.add_metric(['cpu_7'], self._jetson.cpu['CPU7']['val'])
+            #g.add_metric(['cpu_8'], self._jetson.cpu['CPU8']['val'])
             yield g
 
             # 
             # GPU usage
             #
+
             g = GaugeMetricFamily('jetson_usage_gpu', 'GPU % schedutil', labels=['gpu'])
-            g.add_metric(['val'], self._jetson.gpu['val'])
-            # g.add_metric(['frq'], self._jetson.gpu['frq'])
+            g.add_metric(['load'], self._jetson.gpu['gpu']['status']['load'])
+            g.add_metric(['frq'], self._jetson.gpu['gpu']['freq']['cur'])
             # g.add_metric(['min_freq'], self._jetson.gpu['min_freq'])
             # g.add_metric(['max_freq'], self._jetson.gpu['max_freq'])
             yield g
@@ -118,8 +124,8 @@ class CustomCollector(object):
             # RAM usage
             #
             g = GaugeMetricFamily('jetson_usage_ram', 'Memory usage', labels=['ram'])
-            g.add_metric(['used'], self._jetson.ram['use'])
-            g.add_metric(['shared'], self._jetson.ram['shared'])
+            g.add_metric(['used'], self._jetson.memory['RAM']['used'])
+            g.add_metric(['shared'], self._jetson.memory['RAM']['shared'])
             # g.add_metric(['total'], self._jetson.ram['tot'])
             # g.add_metric(['unit'], self._jetson.ram['unit'])
             yield g
@@ -138,7 +144,7 @@ class CustomCollector(object):
             # Fan usage
             #
             g = GaugeMetricFamily('jetson_usage_fan', 'Fan usage', labels=['fan'])
-            g.add_metric(['speed'], self._jetson.fan['speed'])
+            g.add_metric(['speed'], self._jetson.fan['pwmfan']['speed'][0])
             # g.add_metric(['measure'], self._jetson.fan['measure'])
             # g.add_metric(['auto'], self._jetson.fan['auto'])
             # g.add_metric(['rpm'], self._jetson.fan['rpm'])
@@ -149,8 +155,8 @@ class CustomCollector(object):
             # Swapfile usage
             #
             g = GaugeMetricFamily('jetson_usage_swap', 'Swapfile usage', labels=['swap'])
-            g.add_metric(['used'], self._jetson.swap['use'])
-            g.add_metric(['total'], self._jetson.swap['tot'])
+            g.add_metric(['used'], self._jetson.memory['SWAP']['used'])
+            g.add_metric(['total'], self._jetson.memory['SWAP']['tot'])
             # g.add_metric(['unit'], self._jetson.swap['unit'])
             # g.add_metric(['cached_size'], self._jetson.swap['cached']['size'])
             # g.add_metric(['cached_unit'], self._jetson.swap['cached']['unit'])
@@ -160,25 +166,30 @@ class CustomCollector(object):
             # Sensor temperatures
             #
             g = GaugeMetricFamily('jetson_temperatures', 'Sensor temperatures', labels=['temperature'])
-            g.add_metric(['ao'], self._jetson.temperature['AO'] if 'AO' in self._jetson.temperature else 0)
-            g.add_metric(['gpu'], self._jetson.temperature['GPU'] if 'GPU' in self._jetson.temperature else 0)
-            g.add_metric(['tdiode'], self._jetson.temperature['Tdiode'] if 'Tdiode' in self._jetson.temperature else 0)
-            g.add_metric(['aux'], self._jetson.temperature['AUX'] if 'AUX' in self._jetson.temperature else 0)
-            g.add_metric(['cpu'], self._jetson.temperature['CPU'] if 'CPU' in self._jetson.temperature else 0)
-            g.add_metric(['thermal'], self._jetson.temperature['thermal'] if 'thermal' in self._jetson.temperature else 0)
-            g.add_metric(['tboard'], self._jetson.temperature['Tboard'] if 'Tboard' in self._jetson.temperature else 0)
+            g.add_metric(['gpu'], self._jetson.temperature['gpu']['temp'] if 'gpu' in self._jetson.temperature else 0)
+            g.add_metric(['cpu'], self._jetson.temperature['cpu']['temp'] if 'cpu' in self._jetson.temperature else 0)
+            
+            g.add_metric(['soc0'], self._jetson.temperature['soc0']['temp'] if 'soc0' in self._jetson.temperature else 0)
+            g.add_metric(['soc1'], self._jetson.temperature['soc1']['temp'] if 'soc1' in self._jetson.temperature else 0)
+            g.add_metric(['soc2'], self._jetson.temperature['soc2']['temp'] if 'soc2' in self._jetson.temperature else 0)
+
+            g.add_metric(['tj'], self._jetson.temperature['tj']['temp'] if 'tj' in self._jetson.temperature else 0)
+
             yield g
 
             # 
             # Power
             #
+            print(self._jetson.power['rail'])
             g = GaugeMetricFamily('jetson_usage_power', 'Power usage', labels=['power'])
-            g.add_metric(['cpu'], self._jetson.power[1]['CPU']['cur'] if 'CPU' in self._jetson.power[1] else 0)
-            g.add_metric(['cv'], self._jetson.power[1]['CV']['cur'] if 'CV' in self._jetson.power[1] else 0)
-            g.add_metric(['gpu'], self._jetson.power[1]['GPU']['cur'] if 'GPU' in self._jetson.power[1] else 0)
-            g.add_metric(['soc'], self._jetson.power[1]['SOC']['cur'] if 'SOC' in self._jetson.power[1] else 0)
-            g.add_metric(['sys5v'], self._jetson.power[1]['SYS5V']['cur'] if 'SYS5V' in self._jetson.power[1] else 0)
-            g.add_metric(['vddrq'], self._jetson.power[1]['VDDRQ']['cur'] if 'VDDRQ' in self._jetson.power[1] else 0)
+
+            #g.add_metric(['cv'], self._jetson.power['rail']['VDD_CPU_GPU_CV']['power'] if 'rail' in self._jetson.power['rail'] else 0)
+            g.add_metric(['cpu'], self._jetson.power['rail']['VDD_CPU_GPU_CV']['power'] if 'rail' in self._jetson.power else 0)
+            g.add_metric(['soc'], self._jetson.power['rail']['VDD_SOC']['power'] if 'rail' in self._jetson.power else 0)
+            g.add_metric(['total'], self._jetson.power['tot']['power'] if 'tot' in self._jetson.power['rail'] else 0)
+
+            g.add_metric(['sys5v'], self._jetson.power['tot']['volt'] if 'tot' in self._jetson.power else 0)
+            g.add_metric(['total_avg'], self._jetson.power['tot']['avg'] if 'tot' in self._jetson.power else 0)
             yield g
 
 
