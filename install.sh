@@ -1,7 +1,3 @@
-git clone https://github.com/wooferclaw/jetson-stats-grafana-dashboard.git
- 
-cd jetson-stats-grafana-dashboard
-
 sudo cp jetson_stats_prometheus_collector.py /usr/local/bin/
 
 # Install service for the current user
