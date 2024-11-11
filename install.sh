@@ -1,5 +1,3 @@
-mkdir monitoring
-cd monitoring
 git clone https://github.com/wooferclaw/jetson-stats-grafana-dashboard.git
  
 cd jetson-stats-grafana-dashboard
